@@ -1,5 +1,18 @@
-import pandas as pd
+import collections
+
+
 import numpy as np
+import pandas as pd
+import random
+
+# All preprocessing steps that are defined within this module are with
+# the understanding that these flow files are encoded in the .binetflow
+# file format that is available within the Argus netflow utility.
+# https://www.qosient.com/argus/argusnetflow.shtml
+
+# The dataset that was used in this research effort is the CTU-13 dataset.
+# Included in the provided link is an explanation of the dataset along with 
+# an explanation of the features that are available within the dataset.
 
 def strip(text):
     """Strip white space from text
@@ -13,7 +26,9 @@ def strip(text):
 
     return text.strip()
 
-def sort_ip_flow(ip):
+# Work left to be done on the potential preprocessing
+# steps that can be used for feature engineering
+def sort_ip_flow(df: pd.DataFrame, ip):
     """Match IP against a flow srcIP
     
     Arguments:
@@ -74,12 +89,65 @@ def subsample(dataframe: pd.DataFrame):
         [type] -- [description]
     """
 
-    categories = dataframe.loc[:,['Proto', 'SrcAddr', 'DstAddr',
-                                      'Dport']]
-    labels = flowdata.loc[:,['Label']]
+    categories = dataframe.loc[:,['Proto', 'SrcAddr', 'DstAddr','Dport']]
+    labels = dataframe.loc[:,['Label']]
 
     categories_and_labels = dataframe.loc[:,['Proto', 'SrcAddr', 'DstAddr',
                                               'Dport', 'Label']]
     
     return categories, labels, categories_and_labels
 
+def create_corpora(dataframe: pd.DataFrame, window: int, corpus_count: int):
+    """Create corpora of network flows for use in training a model
+    
+    Arguments:
+        dataframe {pd.DataFrame} -- DataFrame to split into corpora
+        window {int} -- window size
+        corpus_count {int} -- how many corpuses to create
+    
+    Returns:
+        [list] -- array of corpora (corpus)
+    """
+    corpus = []
+    corpora = []
+    begin = 0
+    end = 0
+    for i in range(corpus_count):
+        while end <= window:
+            end += 1
+        else:
+            corpus.append(dataframe[begin:(end-1)])
+        begin = begin + window
+        end = end + window
+    corpora.append(corpus)
+    return corpora
+
+def generate_batch(batch_size: int, num_skips: int, skip_window: int):
+    """Generate a batch for training
+    
+    Arguments:
+        batch_size {int} -- batch_size for training dataset
+        num_skips {int} -- number of skips 
+        skip_window {int} -- size of window of surrounding tokens
+    """
+    global data_index
+    # match these parameters to initial word2vec window
+    assert batch_size % num_skips == 0
+    assert num_skips <= 2 * skip_window
+
+    batch = np.ndarray(shape=(batch_size), dtype=np.int32)
+    labels = np.ndarray(shape=(batch_size, 1), dtype=np.int32)
+    span = 2 * skip_window + 1 
+    buffer = collections.deque(mexlen=span)
+    if data_index + span > len(data):
+        data_index = 0
+    buffer.extend(data[data_index:data_index + span])
+    data_index += span
+    for i in range(batch_size // num_skips):
+        context_words = [w for w in range(span) if w != skip_window]
+        words_to_use = random.sample(context_words, num_skips)
+        for j, context_words in enumerate(words_to_use):
+            batch[i * num_skips + j] = buffer[skip_window]
+            labels[i * num_skips + j, 0] = buffer[context_words]
+        if data_index == len(data):
+            buffer.extend(data[0:span])
