@@ -1,6 +1,8 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import collections
-
-
 import numpy as np
 import pandas as pd
 import random
@@ -28,14 +30,14 @@ def strip(text):
 
 # Work left to be done on the potential preprocessing
 # steps that can be used for feature engineering
-def sort_ip_flow(df: pd.DataFrame, ip):
+def sort_ip_flow(df: pd.DataFrame, ip: str) -> dict:
     """Match IP against a flow srcIP
     
     Arguments:
         ip {string} -- string representation of an IP address (e.g. 192.168.1.1)
     """
     flow_list = []
-    for flow in tcp_flows:
+    for flow in df:
         if ip == flow[1][3]:
             flow_list.append(flow)
     return {ip: flow_list}
@@ -76,9 +78,10 @@ def dataframe(filenames: list):
         flowdata = flowdata.append(frame, ignore_index=True)
     
     flowdata.rename(columns=lambda x: x.strip(), inplace=True)
+    return flowdata
 
     
-def subsample(dataframe: pd.DataFrame):
+def split_cols(dataframe: pd.DataFrame):
     """Subsample a dataframe of netflow data and return a tuple of
     subsampled data, labels, and a combination dataframe of both as well
     
@@ -103,24 +106,22 @@ def create_corpora(dataframe: pd.DataFrame, window: int, corpus_count: int):
     Arguments:
         dataframe {pd.DataFrame} -- DataFrame to split into corpora
         window {int} -- window size
-        corpus_count {int} -- how many corpuses to create
+        corpus_count {int} -- how many corpora to create
     
     Returns:
         [list] -- array of corpora (corpus)
-    """
-    corpus = []
+    """    
+    corpus = [] # type: List[dataframe]
     corpora = []
-    begin = 0
-    end = 0
+    beginning = 0
+    end = window
     for i in range(corpus_count):
-        while end <= window:
-            end += 1
-        else:
-            corpus.append(dataframe[begin:(end-1)])
-        begin = begin + window
-        end = end + window
-    corpora.append(corpus)
+        corpus = dataframe.iloc[beginning:end]
+        corpora.append(corpus)
+        beginning = end + 1
+        end += window
     return corpora
+
 
 def generate_batch(batch_size: int, num_skips: int, skip_window: int):
     """Generate a batch for training
@@ -131,6 +132,7 @@ def generate_batch(batch_size: int, num_skips: int, skip_window: int):
         skip_window {int} -- size of window of surrounding tokens
     """
     global data_index
+    data_index = 0
     # match these parameters to initial word2vec window
     assert batch_size % num_skips == 0
     assert num_skips <= 2 * skip_window
@@ -138,7 +140,7 @@ def generate_batch(batch_size: int, num_skips: int, skip_window: int):
     batch = np.ndarray(shape=(batch_size), dtype=np.int32)
     labels = np.ndarray(shape=(batch_size, 1), dtype=np.int32)
     span = 2 * skip_window + 1 
-    buffer = collections.deque(mexlen=span)
+    buffer = collections.deque(maxlen=span)
     if data_index + span > len(data):
         data_index = 0
     buffer.extend(data[data_index:data_index + span])

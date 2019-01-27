@@ -29,6 +29,9 @@ cp.read(config_file)
 # Tensorboard log directory
 log_dir = cp["DEFAULT"].get("log_dir")
 
+flow_files = cp["DEFAULT"].get("flow_files").split(",")
+num_flows = cp["DEFAULT"].get("num_flows")
+
 def logger():
     """
     
@@ -74,7 +77,7 @@ def build_dataset(flows: int, n_flows:int):
     data = list()
     unk_count = 0
     for flow in flows:
-        index = dictrionary.get(flow, 0)
+        index = dictionary.get(flow, 0)
         if index == 0:
             unk_count += 1
         data.append(index)
@@ -82,8 +85,32 @@ def build_dataset(flows: int, n_flows:int):
     reversed_dictionary = dict(zip(dictionary.values(), dictionary.keys()))
     return data, count, dictionary, reversed_dictionary
 
+def top_n(n: int, tokens: list) -> list:
+    """Return a list of top-n unique elements of the dataset
+    
+    Arguments:
+        n {int} -- number of top unique elements to return
+    
+    Returns:
+        list -- array of top-n elements within a dataset
+    """
+    top_n_elements = tokens[:n]
+    return top_n_elements
+
+
+
 def main():
     make_log_dir('/tmp/test_log/')
+
+    flows = generator.dataframe(flow_files)
+    categories, labels, _ = generator.split_cols(flows)
+    corpora = generator.create_corpora(categories, 25, 10)
+    # TODO implement caching feature for dataset versioning for the many types of subsampling and windowing that
+    # may be performed over the dataset. This will help with reprodicibility in the future
+
+    # TODO research the unique values contained within each column of the flows
+    # would be useful to produce histograms for this for analysis
+    print(corpora[0].set_index(['Proto', 'SrcAddr']).count(level='Proto'))
 
 if __name__ == "__main__":
     main()
