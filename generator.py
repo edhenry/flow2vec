@@ -1,11 +1,11 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+from __future__ import absolute_import, division, print_function
 
 import collections
+import random
+import typing
+
 import numpy as np
 import pandas as pd
-import random
 
 # All preprocessing steps that are defined within this module are with
 # the understanding that these flow files are encoded in the .binetflow
@@ -153,3 +153,38 @@ def generate_batch(batch_size: int, num_skips: int, skip_window: int):
             labels[i * num_skips + j, 0] = buffer[context_words]
         if data_index == len(data):
             buffer.extend(data[0:span])
+
+def stringify(dataframes: typing.List[pd.DataFrame]) -> typing.List[pd.Series]:
+    """[summary]
+    
+    Arguments:
+        dataframe {pd.DataFrame} -- [description]
+    
+    Returns:
+        List[pd.Series] -- [description]
+    """
+
+    string_vals_list = [] # type: list
+
+    for df in dataframes:
+        string_vals = df.stack().groupby(level=0).apply(','.join)
+        string_vals_list.append(string_vals)
+    
+    return string_vals_list
+
+def count_tokens(series_list: typing.List[pd.Series]) -> collections.Counter:
+    """Count number of unique tokens in our dataset
+    
+    Arguments:
+        series_list {typing.List[pd.Series]} -- list of unique tokens in our dataset
+    
+    Returns:
+        collections.Counter -- Counter object of all unique values and their counts within a list of series.
+    """
+
+    counts = collections.Counter() # type: dict
+    for series in series_list:
+        for flow in series:
+            counts[flow] += 1
+    
+    return counts
