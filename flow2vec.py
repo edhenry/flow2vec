@@ -21,45 +21,20 @@ from six.moves import urllib, xrange
 from tensorflow.contrib.tensorboard.plugins import projector
 
 import generator
+import log
+import utility
 
 config_file = "./sample_config.ini"
 cp = ConfigParser()
 cp.read(config_file)
 
-# Tensorboard log directory
 log_dir = cp["DEFAULT"].get("log_dir")
-
-flow_files = cp["DEFAULT"].get("flow_files").split(",")
-num_flows = cp["DEFAULT"].get("num_flows")
-
-def logger():
-    """
-    
-    """
-    logger = logging.getLogger('flow2vec')
-    logger.setLevel(logging.DEBUG)
-    handler = logging.StreamHandler()
-    handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
-    logger.addHandler(handler)
-
-    return logger
-
-logs = logger()
-
-def make_log_dir(log_dir: str):
-    """Create tensorboard log directory
-    
-    Arguments:
-        log_dir {str} -- directory on file system to save Tensorboard Log File(s)
-    """
-
-    log_dir = pathlib.Path(log_dir)
-
-    if log_dir.exists():
-        logs.info(f'Tensoboard log directory {log_dir} already exists!')
-    else:
-        os.makedirs(log_dir)
-        logs.info(f'Tensorboard Log Directory {log_dir} created!')
+experiment_dir = cp["DEFAULT"].get("experiment_dir")
+exp_dataset_dir = cp["DEFAULT"].get("exp_dataset_dir")
+flow_files = cp["DEFAULT"].get("flow_files").split(",") # type: List[str]
+num_flows = cp["DEFAULT"].get("num_flows") # type: int
+window_size = cp["DEFAULT"].get("window_size") # type: int
+num_windows = cp["DEFAULT"].get("num_windows") # type: int
 
 def build_dataset(flows: int, n_flows:int):
     """Process dataframes into a dataset
@@ -86,24 +61,26 @@ def build_dataset(flows: int, n_flows:int):
     return data, count, dictionary, reversed_dictionary
 
 def main():
-    make_log_dir(log_dir)
+
+    logs = log.logger() # instantiate logger
+    log.make_log_dir(log_dir, logs) # create logging dir
 
     flows = generator.dataframe(flow_files)
     categories, labels, _ = generator.split_cols(flows)
-    print(len(categories) % 25)
-    corpora = generator.create_corpora(categories, 25, (len(categories) // 25))
+    corpora = utility.create_corpora(categories, 25, 1000)
     # TODO implement caching feature for dataset versioning for the many types of subsampling and windowing that
     # may be performed over the dataset. This will help with reprodicibility in the future
 
     # TODO research the unique values contained within each column of the flows
     # would be useful to produce histograms for this for analysis    
-    strings = generator.stringify(corpora)
-    token_counts = generator.count_tokens(strings)
+    strings = utility.stringify(corpora)
+    token_counts = utility.count_tokens(strings)
 
     vocabulary_size = len(token_counts.keys())
-    print(vocabulary_size)
     pprinter = pprint.PrettyPrinter()
     pprinter.pprint(token_counts.most_common(n=10))
+
+    utility.save_dataset((experiment_dir + exp_dataset_dir), "test.pkl", strings, logs)
 
 
 if __name__ == "__main__":
