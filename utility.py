@@ -1,15 +1,16 @@
 from __future__ import absolute_import, division, print_function
 
-import collections
 import logging
 import os
 import pickle
 import random
 import typing
+from collections import Counter
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
+
 
 def save_dataset(dir: str, filename: str, dataset: pd.Series, logger: logging.Logger):
     """Location on filesystem to save parameterized subset of training data
@@ -54,17 +55,17 @@ def stringify(dataframes: typing.List[pd.DataFrame]) -> typing.List[pd.Series]:
     
     return string_vals_list
 
-def count_tokens(series_list: typing.List[pd.Series]) -> collections.Counter:
+def count_tokens(series_list: typing.List[pd.Series]) -> Counter:
     """Count number of unique tokens in our dataset
     
     Arguments:
         series_list {typing.List[pd.Series]} -- list of unique tokens in our dataset
     
     Returns:
-        collections.Counter -- Counter object of all unique values and their counts within a list of series.
+        Counter -- Counter object of all unique values and their counts within a list of series.
     """
 
-    counts = collections.Counter() # type: dict
+    counts = Counter() # type: Counter
     for series in series_list:
         for flow in series:
             counts[flow] += 1
@@ -82,7 +83,7 @@ def create_corpora(dataframe: pd.DataFrame, window: int, corpus_count: int):
     Returns:
         [list] -- array of corpora (corpus)
     """    
-    corpus = [] # type: List[dataframe]
+    corpus = [] # type: typing.List[pd.Dataframe]
     corpora = []
     beginning = 0
     end = window

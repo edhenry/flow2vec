@@ -114,7 +114,7 @@ def generate_batch(batch_size: int, num_skips: int, skip_window: int):
         skip_window {int} -- size of window of surrounding tokens
     """
     global data_index
-    data_index = 0
+    data_index = 0 
     # match these parameters to initial word2vec window
     assert batch_size % num_skips == 0
     assert num_skips <= 2 * skip_window

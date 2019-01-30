@@ -24,12 +24,13 @@ def make_log_dir(log_dir: str, logger: logging.Logger):
     
     Arguments:
         log_dir {str} -- directory on file system to save Tensorboard Log File(s)
+        logger {logging.Logger()} -- logger object for use in logging
     """
 
-    log_dir = Path(log_dir)
+    log_directory = Path(log_dir) # type: Path
 
-    if log_dir.exists():
+    if log_directory.exists():
         logger.info(f'Tensoboard log directory {log_dir} already exists!')
     else:
-        os.makedirs(log_dir)
+        os.makedirs(log_directory)
         logger.info(f'Tensorboard Log Directory {log_dir} created!')
