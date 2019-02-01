@@ -36,6 +36,17 @@ num_flows = cp["DEFAULT"].get("num_flows") # type: int
 window_size = cp["DEFAULT"].get("window_size") # type: int
 num_windows = cp["DEFAULT"].get("num_windows") # type: int
 
+# training variables -- see defintions of variables within the config.ini file
+batch_size = cp["TRAIN"].get("batch_size") # type: int
+embedding_size = cp["TRAIN"].get("embedding_size") # type: int
+skip_window = cp["TRAIN"].get("skip_window") # type: int
+over_sample_rate = cp["TRAIN"].get("over_sample_rate") # type: int
+num_negative_examples = cp["TRAIN"].get("num_negative_examples") # type: int
+validation_size = cp["TRAIN"].get("validation_size") # type: int
+validation_window = cp["TRAIN"].get("validation_window") # type: int
+validation_examples = np.random.choice(validation_window, validation_size, replace=False)
+
+
 def build_dataset(flows: int, n_flows:int):
     """Process dataframes into a dataset
     
@@ -77,11 +88,13 @@ def main():
     token_counts = utility.count_tokens(strings)
 
     vocabulary_size = len(token_counts.keys())
-    pprinter = pprint.PrettyPrinter()
-    pprinter.pprint(token_counts.most_common(n=10))
-
+    
+    # Save dataset for future use
+    # Eventually would like to utilize something like Pachyderm to allow
+    # for data versioning per experimental runpip
     utility.save_dataset((experiment_dir + exp_dataset_dir), "test.pkl", strings, logs)
 
+        
 
 if __name__ == "__main__":
     main()

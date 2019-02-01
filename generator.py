@@ -136,3 +136,17 @@ def generate_batch(batch_size: int, num_skips: int, skip_window: int):
         if data_index == len(data):
             buffer.extend(data[0:span])
     return
+
+def create_pachyderm_repo():
+
+def list_pachyderm_repos(repo_name: str, repo_branch: str) -> bool:
+    """List all available repos in a given Pachyderm instance
+    
+    Arguments:
+        repo_name {str} -- Name of the repo contained within Pachyderm
+        repo_branch {str} -- Name of the branch within the repo in Pachyderm
+    
+    Returns:
+         bool -- flag is the repo and branch exists or not
+    """
+    
